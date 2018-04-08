@@ -8,7 +8,7 @@ package asynlogger
 
 const (
 	LogLevelDebug = iota
-	LogLevelTrance
+	LogLevelTrace
 	LogLevelInfo
 	LogLevelWarn
 	LogLevelError
@@ -20,8 +20,8 @@ func getLevelText(levelEnum int) string {
 	switch levelEnum {
 	case LogLevelDebug:
 		levelText = "DEBUG"
-	case LogLevelTrance:
-		levelText = "TRANCE"
+	case LogLevelTrace:
+		levelText = "TRACE"
 	case LogLevelInfo:
 		levelText = "INFO"
 	case LogLevelWarn:
@@ -42,8 +42,8 @@ func getLevelEnum(leveText string) int {
 	switch leveText {
 	case "DEBUG":
 		levelEnum = LogLevelDebug
-	case "TRANCE":
-		levelEnum = LogLevelTrance
+	case "TRACE":
+		levelEnum = LogLevelTrace
 	case "INFO":
 		levelEnum = LogLevelInfo
 	case "WARN":

@@ -6,3 +6,7 @@ package asynlogger
 
 type LogData struct {
 }
+
+func createLogData(level int, format string, args ...interface{}) *LogData {
+
+}
