@@ -2,7 +2,6 @@ package asynlogger
 
 import (
 	"fmt"
-	"gopcp.v2/helper/log/base"
 	"os"
 	"strconv"
 )
@@ -77,7 +76,22 @@ func (lf *LogFile) Init() {
 	lf.logHandError = logHandError
 
 	//开个协程将日志写入到文件
+	go func() {
+		for pLogData := range lf.LogDataChan {
+			pFileHand := lf.logHandNoError
+			if pLogData.BIsError {
+				pFileHand = lf.logHandError
+			}
 
+			//[日期时间][日志级别][文件名；调用函数；产生日志行号][用户ID][软件模块][信息内容]
+			fmt.Fprintf(pFileHand, "[%s][%s][%s; %s; %d][%s]\n",
+				pLogData.StrTime,
+				pLogData.StrLevel,
+				pLogData.StrFileName, pLogData.StrFuncName, pLogData.NLineNo,
+				pLogData.StrMessage,
+			)
+		}
+	}()
 }
 
 func (lf *LogFile) SetLevel(levelEnum int) {
@@ -87,6 +101,11 @@ func (lf *LogFile) SetLevel(levelEnum int) {
 	lf.logLevel = levelEnum
 }
 
+/*
+非核心代码异步化:
+1.当业务调用打印日志的方法时，把日志相关数据写入到chan（队列），若chan满了直接丢弃日志数据
+2.有一个协程不断从chan获取日志数据，最终写入文件
+*/
 func (lf *LogFile) writeLogToChan(level int, format string, args ...interface{}) {
 	//生成日志数据类型，放入chan，若chan满了直接丢弃日志数据
 	logData := createLogData(level, format, args)
