@@ -63,3 +63,7 @@
 ```
 go get github.com/Clodfisher/asynlogger...
 ```
+
+### 调用接口    
+
+使用日志库函数，参见[接口封装文件logger](https://github.com/Clodfisher/asynlogger/blob/master/logger.go)    
