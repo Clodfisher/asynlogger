@@ -53,7 +53,7 @@ func createLogData(level int, format string, args ...interface{}) *LogData {
 		StrMessage:  msg,
 		StrTime:     strTime,
 		StrFileName: strFileName,
-		StrFuncName: strFileName,
+		StrFuncName: strFuncName,
 		NLineNo:     nLineNo,
 		BIsError:    bIsError,
 	}
