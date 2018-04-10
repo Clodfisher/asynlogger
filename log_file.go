@@ -14,6 +14,7 @@ type LogFile struct {
 	logLevel       int
 	logPath        string
 	logName        string
+	logMode        string
 	logHandNoError *os.File
 	logHandError   *os.File
 	logChanSize    int
@@ -22,24 +23,29 @@ type LogFile struct {
 
 func NewLogFile(config map[string]string) (log LogInterface, err error) {
 	logPath, ok := config["log_path"]
-	if ok {
+	if !ok {
 		err = fmt.Errorf("not find log_path ")
 		return
 	}
 
 	logName, ok := config["log_name"]
-	if ok {
+	if !ok {
 		err = fmt.Errorf("not find log_name ")
 	}
 
+	logMode, ok := config["log_mode"]
+	if !ok {
+		logMode = ""
+	}
+
 	logLevelTxt, ok := config["log_level"]
-	if ok {
+	if !ok {
 		logLevelTxt = "DEBUG"
 	}
 	logLevelEnum := getLevelEnum(logLevelTxt)
 
 	logChanSizeTxt, ok := config["log_chan_size"]
-	if ok {
+	if !ok {
 		logChanSizeTxt = "50000"
 	}
 	nLogChanSize, err := strconv.Atoi(logChanSizeTxt)
@@ -50,6 +56,7 @@ func NewLogFile(config map[string]string) (log LogInterface, err error) {
 	log = &LogFile{
 		logLevel:    logLevelEnum,
 		logPath:     logPath,
+		logMode:     logMode,
 		logName:     logName,
 		LogDataChan: make(chan *LogData, nLogChanSize),
 	}
@@ -83,11 +90,12 @@ func (lf *LogFile) Init() {
 				pFileHand = lf.logHandError
 			}
 
-			//[日期时间][日志级别][文件名；调用函数；产生日志行号][用户ID][软件模块][信息内容]
-			fmt.Fprintf(pFileHand, "[%s][%s][%s; %s; %d][%s]\n",
+			//[日期时间][日志级别][文件名；调用函数；产生日志行号][软件模块][信息内容]
+			fmt.Fprintf(pFileHand, "[%s][%s][%s; %s; %d][%s][%s]\n",
 				pLogData.StrTime,
 				pLogData.StrLevel,
 				pLogData.StrFileName, pLogData.StrFuncName, pLogData.NLineNo,
+				pLogData.StrMode,
 				pLogData.StrMessage,
 			)
 		}
@@ -106,9 +114,9 @@ func (lf *LogFile) SetLevel(levelEnum int) {
 1.当业务调用打印日志的方法时，把日志相关数据写入到chan（队列），若chan满了直接丢弃日志数据
 2.有一个协程不断从chan获取日志数据，最终写入文件
 */
-func (lf *LogFile) writeLogToChan(level int, format string, args ...interface{}) {
+func (lf *LogFile) writeLogToChan(level int, mode string, format string, args ...interface{}) {
 	//生成日志数据类型，放入chan，若chan满了直接丢弃日志数据
-	logData := createLogData(level, format, args)
+	logData := createLogData(level, mode, format, args...)
 	select {
 	case lf.LogDataChan <- logData:
 	default:
@@ -119,42 +127,42 @@ func (lf *LogFile) Debug(format string, args ...interface{}) {
 	if lf.logLevel > LogLevelDebug {
 		return
 	}
-	lf.writeLogToChan(LogLevelDebug, format, args)
+	lf.writeLogToChan(LogLevelDebug, lf.logMode, format, args...)
 }
 
 func (lf *LogFile) Trance(format string, args ...interface{}) {
 	if lf.logLevel > LogLevelTrace {
 		return
 	}
-	lf.writeLogToChan(LogLevelTrace, format, args)
+	lf.writeLogToChan(LogLevelTrace, lf.logMode, format, args...)
 }
 
 func (lf *LogFile) Info(format string, args ...interface{}) {
 	if lf.logLevel > LogLevelInfo {
 		return
 	}
-	lf.writeLogToChan(LogLevelInfo, format, args)
+	lf.writeLogToChan(LogLevelInfo, lf.logMode, format, args...)
 }
 
 func (lf *LogFile) Warn(format string, args ...interface{}) {
 	if lf.logLevel > LogLevelWarn {
 		return
 	}
-	lf.writeLogToChan(LogLevelWarn, format, args)
+	lf.writeLogToChan(LogLevelWarn, lf.logMode, format, args...)
 }
 
 func (lf *LogFile) Error(format string, args ...interface{}) {
 	if lf.logLevel > LogLevelError {
 		return
 	}
-	lf.writeLogToChan(LogLevelError, format, args)
+	lf.writeLogToChan(LogLevelError, lf.logMode, format, args...)
 }
 
 func (lf *LogFile) Fatal(format string, args ...interface{}) {
 	if lf.logLevel > LogLevelFatal {
 		return
 	}
-	lf.writeLogToChan(LogLevelFatal, format, args)
+	lf.writeLogToChan(LogLevelFatal, lf.logMode, format, args...)
 }
 
 func (lf *LogFile) Close() {

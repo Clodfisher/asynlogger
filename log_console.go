@@ -2,7 +2,6 @@ package asynlogger
 
 import (
 	"fmt"
-	"strconv"
 )
 
 /*
@@ -11,19 +10,26 @@ import (
 */
 
 type LogConsole struct {
-	LogLevel int
+	logLevel int
+	logMode  string
 }
 
 func NewLogConsole(config map[string]string) (log LogInterface, err error) {
 
 	logLevelTxt, ok := config["log_level"]
-	if ok {
+	if !ok {
 		logLevelTxt = "DEBUG"
 	}
 	logLevelEnum := getLevelEnum(logLevelTxt)
 
+	logMode, ok := config["log_mode"]
+	if !ok {
+		logMode = ""
+	}
+
 	log = &LogConsole{
-		LogLevel: logLevelEnum,
+		logLevel: logLevelEnum,
+		logMode:  logMode,
 	}
 
 	return
@@ -38,69 +44,70 @@ func (lc *LogConsole) SetLevel(levelEnum int) {
 		levelEnum = LogLevelDebug
 	}
 
-	lc.LogLevel = levelEnum
+	lc.logLevel = levelEnum
 }
 
-func (lc *LogConsole) writeLogToConsole(level int, format string, args ...interface{}) {
+func (lc *LogConsole) writeLogToConsole(level int, mode string, format string, args ...interface{}) {
 	//生成日志数据类型，放入chan，若chan满了直接丢弃日志数据
-	pLogData := createLogData(level, format, args)
+	pLogData := createLogData(level, mode, format, args...)
 
-	//[日期时间][日志级别][文件名；调用函数；产生日志行号][用户ID][软件模块][信息内容]
-	fmt.Printf("[%s][%s][%s; %s; %d][%s]\n",
+	//[日期时间][日志级别][文件名；调用函数；产生日志行号][软件模块][信息内容]
+	fmt.Printf("[%s][%s][%s; %s; %d][%s][%s]\n",
 		pLogData.StrTime,
 		pLogData.StrLevel,
 		pLogData.StrFileName, pLogData.StrFuncName, pLogData.NLineNo,
+		pLogData.StrMode,
 		pLogData.StrMessage,
 	)
 
 }
 
 func (lc *LogConsole) Debug(format string, args ...interface{}) {
-	if lc.LogLevel > LogLevelDebug {
+	if lc.logLevel > LogLevelDebug {
 		return
 	}
 
-	lc.writeLogToConsole(LogLevelDebug, format, args)
+	lc.writeLogToConsole(LogLevelDebug, lc.logMode, format, args...)
 }
 
 func (lc *LogConsole) Trance(format string, args ...interface{}) {
-	if lc.LogLevel > LogLevelTrace {
+	if lc.logLevel > LogLevelTrace {
 		return
 	}
 
-	lc.writeLogToConsole(LogLevelTrace, format, args)
+	lc.writeLogToConsole(LogLevelTrace, lc.logMode, format, args...)
 }
 
 func (lc *LogConsole) Info(format string, args ...interface{}) {
-	if lc.LogLevel > LogLevelInfo {
+	if lc.logLevel > LogLevelInfo {
 		return
 	}
 
-	lc.writeLogToConsole(LogLevelInfo, format, args)
+	lc.writeLogToConsole(LogLevelInfo, lc.logMode, format, args...)
 }
 
 func (lc *LogConsole) Warn(format string, args ...interface{}) {
-	if lc.LogLevel > LogLevelWarn {
+	if lc.logLevel > LogLevelWarn {
 		return
 	}
 
-	lc.writeLogToConsole(LogLevelWarn, format, args)
+	lc.writeLogToConsole(LogLevelWarn, lc.logMode, format, args...)
 }
 
 func (lc *LogConsole) Error(format string, args ...interface{}) {
-	if lc.LogLevel > LogLevelError {
+	if lc.logLevel > LogLevelError {
 		return
 	}
 
-	lc.writeLogToConsole(LogLevelError, format, args)
+	lc.writeLogToConsole(LogLevelError, lc.logMode, format, args...)
 }
 
 func (lc *LogConsole) Fatal(format string, args ...interface{}) {
-	if lc.LogLevel > LogLevelFatal {
+	if lc.logLevel > LogLevelFatal {
 		return
 	}
 
-	lc.writeLogToConsole(LogLevelFatal, format, args)
+	lc.writeLogToConsole(LogLevelFatal, lc.logMode, format, args...)
 }
 
 func (lc *LogConsole) Close() {

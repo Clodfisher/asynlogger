@@ -28,7 +28,7 @@ func LoggerInit(nameLogger string, config map[string]string) (err error) {
 	switch nameLogger {
 	case "file":
 		log, err = NewLogFile(config)
-	case nameLogger:
+	case "console":
 		log, err = NewLogConsole(config)
 	default:
 		err = fmt.Errorf("unsupport logger name:%s", nameLogger)
@@ -59,7 +59,7 @@ func LoggerSetLevelShow(levelEnum int) {
  * @param[in] 		args		格式化中需要加入的参数
  */
 func Debug(format string, args ...interface{}) {
-	log.Debug(format, args)
+	log.Debug(format, args...)
 }
 
 /* @brief			输出的日志级别为Trace级别
@@ -69,7 +69,7 @@ func Debug(format string, args ...interface{}) {
  * @param[in] 		args		格式化中需要加入的参数
  */
 func Trace(format string, args ...interface{}) {
-	log.Trance(format, args)
+	log.Trance(format, args...)
 }
 
 /* @brief			输出的日志级别为Info级别
@@ -79,7 +79,7 @@ func Trace(format string, args ...interface{}) {
  * @param[in] 		args		格式化中需要加入的参数
  */
 func Info(format string, args ...interface{}) {
-	log.Info(format, args)
+	log.Info(format, args...)
 }
 
 /* @brief			输出的日志级别为Warn级别
@@ -89,7 +89,7 @@ func Info(format string, args ...interface{}) {
 * @param[in] 		args		格式化中需要加入的参数
  */
 func Warn(format string, args ...interface{}) {
-	log.Warn(format, args)
+	log.Warn(format, args...)
 }
 
 /* @brief			输出的日志级别为Error级别
@@ -99,7 +99,7 @@ func Warn(format string, args ...interface{}) {
 * @param[in] 		args		格式化中需要加入的参数
  */
 func Error(format string, args ...interface{}) {
-	log.Warn(format, args)
+	log.Warn(format, args...)
 }
 
 /* @brief			输出的日志级别为Fatal级别
@@ -109,5 +109,5 @@ func Error(format string, args ...interface{}) {
  * @param[in] 		args		格式化中需要加入的参数
  */
 func Fatal(format string, args ...interface{}) {
-	log.Fatal(format, args)
+	log.Fatal(format, args...)
 }
