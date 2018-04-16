@@ -3,7 +3,6 @@ package asynlogger
 import (
 	"fmt"
 	"testing"
-	"time"
 )
 
 /*
@@ -24,16 +23,14 @@ func TestFileLogger(t *testing.T) {
 		fmt.Println("init LoggerInit err : ", err)
 	}
 
-	for {
-		Debug("init LoggerInit success...")
-		Trace("Trace test %s", "you are right")
-		Info("Info test %d", 10)
-		Warn("Trace test %s", "you are right")
-		Error("Error Test")
-		Fatal("Fatal test")
-	}
-
-	time.Sleep(time.Second * 5)
+	//	for {
+	Debug("init LoggerInit success...")
+	Trace("Trace test %s", "you are right")
+	Info("Info test %d", 10)
+	Warn("Trace test %s", "you are right")
+	Error("Error Test")
+	Fatal("Fatal test")
+	//	}
 
 	LoggerClose()
 }

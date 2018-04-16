@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -22,7 +23,8 @@ type LogFile struct {
 	LogDataChan      chan *LogData
 	logSplitTye      int
 	logSplitSize     int64
-	LogLastSplitHour int
+	logLastSplitHour int
+	logWaitGroup     *sync.WaitGroup
 }
 
 func NewLogFile(config map[string]string) (log LogInterface, err error) {
@@ -81,7 +83,8 @@ func NewLogFile(config map[string]string) (log LogInterface, err error) {
 		LogDataChan:      make(chan *LogData, nLogChanSize),
 		logSplitTye:      nlogSplitType,
 		logSplitSize:     nLogSplitSize,
-		LogLastSplitHour: time.Now().Hour(),
+		logLastSplitHour: time.Now().Hour(),
+		logWaitGroup:     new(sync.WaitGroup),
 	}
 
 	log.Init()
@@ -92,20 +95,20 @@ func NewLogFile(config map[string]string) (log LogInterface, err error) {
 func (lf *LogFile) splitFileHour(bIsError bool) {
 	now := time.Now()
 	hour := now.Hour()
-	if hour == lf.LogLastSplitHour {
+	if hour == lf.logLastSplitHour {
 		return
 	}
 
-	lf.LogLastSplitHour = hour
+	lf.logLastSplitHour = hour
 	var strBackupFileName string
 	var strFileName string
 	if bIsError {
 		strBackupFileName = fmt.Sprintf("%s/%s.log.wef_%04d%02d%02d%02d",
-			lf.logPath, lf.logName, now.Year(), now.Month(), now.Day(), lf.LogLastSplitHour)
+			lf.logPath, lf.logName, now.Year(), now.Month(), now.Day(), lf.logLastSplitHour)
 		strFileName = fmt.Sprintf("%s/%s.log.wef", lf.logPath, lf.logName)
 	} else {
 		strBackupFileName = fmt.Sprintf("%s/%s.log_%04d%02d%02d%02d",
-			lf.logPath, lf.logName, now.Year(), now.Month(), now.Day(), lf.LogLastSplitHour)
+			lf.logPath, lf.logName, now.Year(), now.Month(), now.Day(), lf.logLastSplitHour)
 		strFileName = fmt.Sprintf("%s/%s.log", lf.logPath, lf.logName)
 	}
 
@@ -221,6 +224,9 @@ func (lf *LogFile) Init() {
 				pLogData.StrMode,
 				pLogData.StrMessage,
 			)
+
+			//从队列中获取数据完成一次
+			lf.logWaitGroup.Done()
 		}
 	}()
 }
@@ -242,6 +248,7 @@ func (lf *LogFile) writeLogToChan(level int, mode string, format string, args ..
 	logData := createLogData(level, mode, format, args...)
 	select {
 	case lf.LogDataChan <- logData:
+		lf.logWaitGroup.Add(1)
 	default:
 	}
 }
@@ -289,6 +296,7 @@ func (lf *LogFile) Fatal(format string, args ...interface{}) {
 }
 
 func (lf *LogFile) Close() {
+	lf.logWaitGroup.Wait()
 	lf.logHandNoError.Close()
 	lf.logHandError.Close()
 }
