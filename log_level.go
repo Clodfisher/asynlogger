@@ -15,6 +15,12 @@ const (
 	LogLevelFatal
 )
 
+////用于如何对日志文件进行切分，0 - 通过小时进行切分， 1 - 通个大小进行切分
+//const (
+//	LogSplitTypeHour = iota
+//	LogSplitTypeSize
+//)
+
 func getLevelText(levelEnum int) string {
 	var levelText string
 	switch levelEnum {

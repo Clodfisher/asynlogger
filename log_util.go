@@ -2,6 +2,7 @@ package asynlogger
 
 import (
 	"fmt"
+	"path"
 	"runtime"
 	"time"
 )
@@ -41,6 +42,8 @@ func createLogData(level int, mode string, format string, args ...interface{}) *
 	levelTxt := getLevelText(level)
 
 	strFileName, strFuncName, nLineNo := GetLineInfo()
+	strFileName = path.Base(strFileName)
+	strFuncName = path.Base(strFuncName)
 
 	msg := fmt.Sprintf(format, args...)
 

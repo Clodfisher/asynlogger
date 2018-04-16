@@ -61,6 +61,8 @@ func NewLogFile(config map[string]string) (log LogInterface, err error) {
 		LogDataChan: make(chan *LogData, nLogChanSize),
 	}
 
+	log.Init()
+
 	return
 }
 

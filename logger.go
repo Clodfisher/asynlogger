@@ -37,6 +37,14 @@ func LoggerInit(nameLogger string, config map[string]string) (err error) {
 	return
 }
 
+/* @brief			关闭日志
+ * @details			进行日志输出的善后工作
+ * @param[in]
+ */
+func LoggerClose() {
+	log.Close()
+}
+
 /* @brief			设置显示日志输出的级别
  * @details			只有大于等于该等级的日志才能数据，比如设置的级别为LogLevelTrace，
  *                  则LogLevelDebug级别的日志将不会输出
@@ -99,7 +107,7 @@ func Warn(format string, args ...interface{}) {
 * @param[in] 		args		格式化中需要加入的参数
  */
 func Error(format string, args ...interface{}) {
-	log.Warn(format, args...)
+	log.Error(format, args...)
 }
 
 /* @brief			输出的日志级别为Fatal级别
