@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 /*
@@ -11,14 +12,17 @@ import (
 */
 
 type LogFile struct {
-	logLevel       int
-	logPath        string
-	logName        string
-	logMode        string
-	logHandNoError *os.File
-	logHandError   *os.File
-	logChanSize    int
-	LogDataChan    chan *LogData
+	logLevel         int
+	logPath          string
+	logName          string
+	logMode          string
+	logHandNoError   *os.File
+	logHandError     *os.File
+	logChanSize      int
+	LogDataChan      chan *LogData
+	logSplitTye      int
+	logSplitSize     int64
+	LogLastSplitHour int
 }
 
 func NewLogFile(config map[string]string) (log LogInterface, err error) {
@@ -53,17 +57,131 @@ func NewLogFile(config map[string]string) (log LogInterface, err error) {
 		nLogChanSize = 50000
 	}
 
+	nlogSplitType := LogSplitTypeHour
+	var nLogSplitSize int64
+	strLogSplitType, ok := config["log_split_type"]
+	if ok && (strLogSplitType == "size") {
+		strLogSplitSize, ok := config["log_split_size"]
+		if !ok {
+			strLogSplitSize = "104857600" //100M
+		}
+		nLogSplitSize, err = strconv.ParseInt(strLogSplitSize, 10, 64)
+		if err != nil {
+			nLogSplitSize = 104857600
+		}
+
+		nlogSplitType = LogSplitTypeSize
+	}
+
 	log = &LogFile{
-		logLevel:    logLevelEnum,
-		logPath:     logPath,
-		logMode:     logMode,
-		logName:     logName,
-		LogDataChan: make(chan *LogData, nLogChanSize),
+		logLevel:         logLevelEnum,
+		logPath:          logPath,
+		logMode:          logMode,
+		logName:          logName,
+		LogDataChan:      make(chan *LogData, nLogChanSize),
+		logSplitTye:      nlogSplitType,
+		logSplitSize:     nLogSplitSize,
+		LogLastSplitHour: time.Now().Hour(),
 	}
 
 	log.Init()
 
 	return
+}
+
+func (lf *LogFile) splitFileHour(bIsError bool) {
+	now := time.Now()
+	hour := now.Hour()
+	if hour == lf.LogLastSplitHour {
+		return
+	}
+
+	lf.LogLastSplitHour = hour
+	var strBackupFileName string
+	var strFileName string
+	if bIsError {
+		strBackupFileName = fmt.Sprintf("%s/%s.log.wef_%04d%02d%02d%02d",
+			lf.logPath, lf.logName, now.Year(), now.Month(), now.Day(), lf.LogLastSplitHour)
+		strFileName = fmt.Sprintf("%s/%s.log.wef", lf.logPath, lf.logName)
+	} else {
+		strBackupFileName = fmt.Sprintf("%s/%s.log_%04d%02d%02d%02d",
+			lf.logPath, lf.logName, now.Year(), now.Month(), now.Day(), lf.LogLastSplitHour)
+		strFileName = fmt.Sprintf("%s/%s.log", lf.logPath, lf.logName)
+	}
+
+	logHandFile := lf.logHandNoError
+	if bIsError {
+		logHandFile = lf.logHandError
+	}
+
+	logHandFile.Close()
+	os.Rename(strFileName, strBackupFileName)
+
+	logHandFile, err := os.OpenFile(strFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
+	if err != nil {
+		return
+	}
+
+	if bIsError {
+		lf.logHandError = logHandFile
+	} else {
+		lf.logHandNoError = logHandFile
+	}
+}
+
+func (lf *LogFile) splitFileSize(bIsError bool) {
+	logHandFile := lf.logHandNoError
+	if bIsError {
+		logHandFile = lf.logHandError
+	}
+
+	statInfo, err := logHandFile.Stat()
+	if err != nil {
+		return
+	}
+
+	fileSize := statInfo.Size()
+
+	if fileSize < lf.logSplitSize {
+		return
+	}
+
+	var strBackupFileName string
+	var strFileName string
+	now := time.Now()
+	if bIsError {
+		strBackupFileName = fmt.Sprintf("%s/%s.log.wef_%04d%02d%02d%02d%02d%02d",
+			lf.logPath, lf.logName, now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
+		strFileName = fmt.Sprintf("%s/%s.log.wef", lf.logPath, lf.logName)
+	} else {
+		strBackupFileName = fmt.Sprintf("%s/%s.log_%04d%02d%02d%02d%02d%02d",
+			lf.logPath, lf.logName, now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
+		strFileName = fmt.Sprintf("%s/%s.log", lf.logPath, lf.logName)
+	}
+
+	logHandFile.Close()
+	os.Rename(strFileName, strBackupFileName)
+
+	logHandFile, err = os.OpenFile(strFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
+	if err != nil {
+		return
+	}
+
+	if bIsError {
+		lf.logHandError = logHandFile
+	} else {
+		lf.logHandNoError = logHandFile
+	}
+
+}
+
+func (lf *LogFile) checkSplitFile(bIsError bool) {
+	if lf.logSplitTye == LogSplitTypeHour {
+		lf.splitFileHour(bIsError)
+		return
+	}
+
+	lf.splitFileSize(bIsError)
 }
 
 func (lf *LogFile) Init() {
@@ -91,6 +209,9 @@ func (lf *LogFile) Init() {
 			if pLogData.BIsError {
 				pFileHand = lf.logHandError
 			}
+
+			//对日志文件的备份迁移 - 1 .根据时间进行备份迁移。2 .根据文件的大小进行备份迁移。
+			lf.checkSplitFile(pLogData.BIsError)
 
 			//[日期时间][日志级别][文件名；调用函数；产生日志行号][软件模块][信息内容]
 			fmt.Fprintf(pFileHand, "[%s][%s][%s; %s; %d][%s][%s]\n",

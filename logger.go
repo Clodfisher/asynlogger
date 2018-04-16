@@ -23,6 +23,8 @@ var log LogInterface
  *                                  config["log_mode"]	-- 用于配置产生日志模块名，默认为""
  *                                  config["log_level"]	-- 用于配置产生日志的等级，默认为"DEBUG"
  *                                  config["log_chan_size"]	-- 用于配置chan队列的大小，默认为"50000"
+ *									config["log_split_type"] -- 用于配置日志文件备份迁移类型 "hour" - 按小时， size - 根据大小
+ * 									config["log_split_size"] -- 用于配置当文件大小大于此值时,单位为B，将进行配置，默认为100M(104857600)
  */
 func LoggerInit(nameLogger string, config map[string]string) (err error) {
 	switch nameLogger {

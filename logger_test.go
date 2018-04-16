@@ -18,17 +18,20 @@ func TestFileLogger(t *testing.T) {
 	config["log_path"] = "c:/logs/"
 	config["log_name"] = "user_server"
 	config["log_chan_size"] = "50000"
+	config["log_split_type"] = "size"
 	err := LoggerInit("file", config)
 	if err != nil {
 		fmt.Println("init LoggerInit err : ", err)
 	}
 
-	Debug("init LoggerInit success...")
-	Trace("Trace test %s", "you are right")
-	Info("Info test %d", 10)
-	Warn("Trace test %s", "you are right")
-	Error("Error Test")
-	Fatal("Fatal test")
+	for {
+		Debug("init LoggerInit success...")
+		Trace("Trace test %s", "you are right")
+		Info("Info test %d", 10)
+		Warn("Trace test %s", "you are right")
+		Error("Error Test")
+		Fatal("Fatal test")
+	}
 
 	time.Sleep(time.Second * 5)
 
